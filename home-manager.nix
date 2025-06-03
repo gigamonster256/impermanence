@@ -13,6 +13,8 @@ let
     any
     hasInfix
     attrValues
+    mkMerge
+    mkIf
     ;
 
   inherit (types)
@@ -45,42 +47,46 @@ in
         }
       ));
   };
-  config = {
-    _module.args = {
-      persistenceModuleImported = false;
-    };
-    assertions = [
-      {
-        assertion = config.submoduleSupport.enable;
-        message = ''
-          home.persistence: Home Manager used standalone!
+  config = mkMerge [
+    {
+      _module.args = {
+        persistenceModuleImported = false;
+      };
+    }
+    (mkIf (config.home.persistence != { }) {
+      assertions = [
+        {
+          assertion = config.submoduleSupport.enable;
+          message = ''
+            home.persistence: Home Manager used standalone!
 
-            Home Manager has to be imported as a module in your NixOS
-            configuration for the persistence module to work properly. See
-            https://nix-community.github.io/home-manager/#sec-install-nixos-module
-            for instructions.
-        '';
-      }
-      {
-        assertion = persistenceModuleImported;
-        message = ''
-          home.persistence: NixOS persistence module missing!
+              Home Manager has to be imported as a module in your NixOS
+              configuration for the persistence module to work properly. See
+              https://nix-community.github.io/home-manager/#sec-install-nixos-module
+              for instructions.
+          '';
+        }
+        {
+          assertion = persistenceModuleImported;
+          message = ''
+            home.persistence: NixOS persistence module missing!
 
-            The Home Manager module requires the NixOS module to work properly. See
-            https://github.com/nix-community/impermanence?tab=readme-ov-file#nixos
-            for instructions.
-        '';
-      }
-      {
-        assertion = !(any (hasInfix home.homeDirectory) persistentStoragePaths);
-        message = ''
-          home.persistence: persistentStoragePath contains home directory path!
+              The Home Manager module requires the NixOS module to work properly. See
+              https://github.com/nix-community/impermanence?tab=readme-ov-file#nixos
+              for instructions.
+          '';
+        }
+        {
+          assertion = !(any (hasInfix home.homeDirectory) persistentStoragePaths);
+          message = ''
+            home.persistence: persistentStoragePath contains home directory path!
 
-            The API has changed - the persistent storage path should no longer
-            contain the path to the user's home directory, as it will be added
-            automatically.
-        '';
-      }
-    ];
-  };
+              The API has changed - the persistent storage path should no longer
+              contain the path to the user's home directory, as it will be added
+              automatically.
+          '';
+        }
+      ];
+    })
+  ];
 }
